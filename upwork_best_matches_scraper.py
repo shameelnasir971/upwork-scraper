@@ -103,7 +103,6 @@ def scrape_cycle():
         driver = uc.Chrome(options=options, version_main=144)
 
         if driver:
-            # 2. Check Login
             driver.get('https://www.upwork.com/nx/find-work/')
             time.sleep(8)
             bypass_captcha(driver)
