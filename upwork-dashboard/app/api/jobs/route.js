@@ -10,22 +10,24 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
     try {
-        // 1. Get Expiry Setting from Supabase
-        const { data: settings } = await supabase.from('settings').select('expiry_minutes').single();
-        const expiryMins = settings?.expiry_minutes || 360; // Default 6 hours
+        // 1. Get Expiry Setting
+        const { data: settings } = await supabase.from('settings').select('expiry_minutes').eq('id', 1).single();
+        const expiryMins = settings?.expiry_minutes || 360;
 
-        // 2. Auto-Delete Expired Jobs
+        // 2. Server-side Cleanup (UTC Based)
         const cutoffTime = new Date(Date.now() - expiryMins * 60 * 1000).toISOString();
+        
+        // Delete jobs older than cutoff
         await supabase.from('jobs').delete().lt('created_at', cutoffTime);
 
-        // 3. Fetch Remaining Jobs
-        const { data, error } = await supabase
+        // 3. Fetch Fresh Jobs
+        const { data: jobs, error } = await supabase
             .from('jobs')
             .select('*')
             .order('id', { ascending: false });
 
         if (error) throw error; 
-        return NextResponse.json(data || [], { headers: { 'Cache-Control': 'no-store' } });
+        return NextResponse.json(jobs, { headers: { 'Cache-Control': 'no-store' } });
     } catch (error) {
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
@@ -35,10 +37,7 @@ export async function DELETE(request) {
     try {
         const { searchParams } = new URL(request.url);
         const id = searchParams.get('id');
-        if (!id) return NextResponse.json({ error: "ID required" }, { status: 400 });
-
-        const { error } = await supabase.from('jobs').delete().eq('job_id', id);
-        if (error) throw error;
+        await supabase.from('jobs').delete().eq('job_id', id);
         return NextResponse.json({ success: true });
     } catch (error) {
         return NextResponse.json({ error: error.message }, { status: 500 });

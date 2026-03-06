@@ -4,32 +4,43 @@ import { useState, useEffect, useCallback } from "react";
 import ProposalModal from "@/components/ProposalModal";
 import Sidebar from "@/components/Sidebar";
 
-// --- PREMIUM BOXED TIMER COMPONENT ---
+// --- PREMIUM BOXED TIMER COMPONENT (UTC & INSTANT PURGE FIX) ---
 function JobTimer({ createdAt, expiryMins, onExpire }: { createdAt: string, expiryMins: number, onExpire: () => void }) {
   const [time, setTime] = useState({ h: "00", m: "00", s: "00" });
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      const created = new Date(createdAt).getTime();
-      const expiry = created + (expiryMins * 60 * 1000);
+    const calculateTime = () => {
+      // Convert Supabase UTC string to local timestamp for accuracy
+      const createdDate = new Date(createdAt).getTime();
+      const expiryTime = createdDate + (expiryMins * 60 * 1000);
       const now = new Date().getTime();
-      const diff = expiry - now;
+      const diff = expiryTime - now;
 
       if (diff <= 0) {
-        clearInterval(interval);
-        onExpire(); 
-      } else {
-        const h = Math.floor(diff / (1000 * 60 * 60));
-        const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-        const s = Math.floor((diff % (1000 * 60)) / 1000);
-        
-        setTime({
-          h: h.toString().padStart(2, '0'),
-          m: m.toString().padStart(2, '0'),
-          s: s.toString().padStart(2, '0')
-        });
+        onExpire(); // Trigger instant deletion from UI and DB
+        return false;
       }
+
+      const h = Math.floor(diff / (1000 * 60 * 60));
+      const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const s = Math.floor((diff % (1000 * 60)) / 1000);
+      
+      setTime({
+        h: h.toString().padStart(2, '0'),
+        m: m.toString().padStart(2, '0'),
+        s: s.toString().padStart(2, '0')
+      });
+      return true;
+    };
+
+    const hasTimeLeft = calculateTime();
+    if (!hasTimeLeft) return;
+
+    const interval = setInterval(() => {
+      const stillRunning = calculateTime();
+      if (!stillRunning) clearInterval(interval);
     }, 1000);
+
     return () => clearInterval(interval);
   }, [createdAt, expiryMins, onExpire]);
 
@@ -81,6 +92,7 @@ export default function Dashboard() {
   }, [fetchJobs]);
 
   const handleIgnore = useCallback(async (jobId: string) => {
+    // Optimistic UI update
     setJobs((prev) => prev.filter((job) => job.job_id !== jobId));
     try {
       await fetch(`/api/jobs?id=${jobId}`, { method: "DELETE" });
@@ -140,9 +152,14 @@ export default function Dashboard() {
                         <span className="bg-purple-500/10 text-purple-400 text-[9px] font-bold px-3 py-1 rounded-lg border border-purple-500/20 uppercase tracking-widest">{job.experience_level}</span>
                       </div>
                       
+                      {/* TIMER & IGNORE BUTTON - TOP RIGHT ALIGNMENT */}
                       <div className="flex items-center gap-6">
-                        <JobTimer createdAt={job.created_at} expiryMins={expiryMins} onExpire={() => handleIgnore(job.job_id)} />
-                        <button onClick={() => handleIgnore(job.job_id)} className="text-slate-600 hover:text-red-400 transition-all group/btn">
+                        <JobTimer 
+                          createdAt={job.created_at} 
+                          expiryMins={expiryMins} 
+                          onExpire={() => handleIgnore(job.job_id)} 
+                        />
+                        <button onClick={() => handleIgnore(job.job_id)} className="flex items-center gap-2 text-slate-600 hover:text-red-400 transition-all group/btn">
                           <span className="text-[10px] font-black uppercase tracking-widest opacity-0 group-hover/btn:opacity-100 transition-opacity">Ignore</span>
                           <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                         </button>
@@ -151,7 +168,7 @@ export default function Dashboard() {
 
                     <a href={job.job_url} target="_blank" className="text-3xl font-black text-white hover:text-emerald-400 transition-colors leading-[1.1] tracking-tight">{job.job_title}</a>
                     
-                    {/* RESTORED SKILLS TAGS */}
+                    {/* SKILLS TAGS SECTION */}
                     <div className="flex flex-wrap gap-2">
                       {job.job_tags?.split(',').map((tag: string, i: number) => (
                         <span key={i} className="bg-slate-900 text-slate-400 text-[10px] font-bold px-4 py-1.5 rounded-xl border border-slate-800 transition-colors">{tag.trim()}</span>
@@ -168,7 +185,7 @@ export default function Dashboard() {
                     <div className="relative">
                       <p className={`text-slate-400 text-base leading-relaxed font-medium italic ${!isExpanded ? 'line-clamp-3' : ''}`}>{job.job_description}</p>
                       {job.job_description?.length > 200 && (
-                        <button onClick={() => toggleDescription(job.job_id)} className="text-emerald-500 text-[11px] font-black uppercase tracking-[0.2em] mt-4 hover:text-emerald-400 transition-all flex items-center gap-2">
+                        <button onClick={() => toggleDescription(job.job_id)} className="text-emerald-500 text-[11px] font-black uppercase mt-4 hover:text-emerald-400 transition-all flex items-center gap-2">
                           {isExpanded ? "↑ Collapse Details" : "↓ Expand Full Description"}
                         </button>
                       )}
@@ -180,7 +197,12 @@ export default function Dashboard() {
                         <span className="text-[10px] font-bold text-slate-400">{job.client_spent}</span>
                       </div>
                       <div className="flex gap-4">
-                        <button onClick={() => setSelectedJob(job)} className="bg-blue-600 hover:bg-blue-500 text-white px-8 py-4 rounded-[1.5rem] text-sm font-black transition-all shadow-xl shadow-blue-900/20 active:scale-95 uppercase tracking-widest">Generate Proposal ✨</button>
+                        <button 
+                          onClick={() => setSelectedJob(job)}
+                          className="bg-blue-600 hover:bg-blue-500 text-white px-8 py-4 rounded-[1.5rem] text-sm font-black transition-all shadow-xl shadow-blue-900/20 active:scale-95 uppercase tracking-widest"
+                        >
+                          Generate Proposal ✨
+                        </button>
                         <a href={job.job_url} target="_blank" className="bg-slate-800 hover:bg-slate-700 text-white px-8 py-4 rounded-[1.5rem] text-sm font-black transition-all active:scale-95 uppercase tracking-widest">Apply on Upwork</a>
                       </div>
                     </div>
@@ -190,7 +212,6 @@ export default function Dashboard() {
             })}
           </div>
 
-          {/* Pagination */}
           {totalPages > 1 && (
             <div className="mt-20 flex items-center justify-center gap-4 pb-20">
               <button disabled={currentPage === 1} onClick={() => {setCurrentPage(currentPage - 1); window.scrollTo({top:0, behavior:'smooth'})}} className="h-14 w-14 flex items-center justify-center rounded-2xl border border-slate-800 bg-[#0B1120] text-slate-400 hover:border-emerald-500 transition-all disabled:opacity-10">

@@ -12,23 +12,23 @@ export default function TimerPage() {
     fetch("/api/settings")
       .then((res) => res.json())
       .then((data) => {
-        const totalMins = data.expiry_minutes;
+        const totalMins = data.expiry_minutes || 0;
         setH(Math.floor(totalMins / 60));
         setM(Math.floor(totalMins % 60));
-        setS(Math.round((totalMins % 1) * 60));
+        setS(Math.round(((totalMins * 60) % 60)));
       });
   }, []);
 
   const saveTimer = async () => {
     setLoading(true);
-    // Convert everything to minutes for database
-    const totalMinutes = h * 60 + m + s / 60;
+    // Independent calculation for H, M, S
+    const totalMinutes = (Number(h) * 60) + Number(m) + (Number(s) / 60);
 
     try {
       await fetch("/api/settings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ minutes: totalMinutes }),
+        body: JSON.stringify({ expiry_minutes: totalMinutes }),
       });
       alert("System Protocol Updated! ⚡");
     } catch (err) {
@@ -42,12 +42,12 @@ export default function TimerPage() {
     <div className="flex min-h-screen bg-[#020617] text-slate-100 font-sans antialiased">
       <Sidebar />
       <main className="flex-1 lg:ml-72 flex flex-col items-center justify-center p-6 md:p-12">
-        <div className="w-full max-w-2xl text-center mb-10">
+        <div className="w-full max-w-xl text-center mb-10">
           <h1 className="text-5xl font-black text-white tracking-tighter mb-4">Data Lifecycle</h1>
           <p className="text-slate-500 text-sm">Set independent values for Hours, Minutes, or Seconds.</p>
         </div>
 
-        <div className="w-full max-w-2xl bg-[#0B1120] border border-slate-800/60 rounded-[3.5rem] p-12 shadow-2xl">
+        <div className="w-full max-w-xl bg-[#0B1120] border border-slate-800/60 rounded-[3.5rem] p-12 shadow-2xl">
           <div className="flex justify-center gap-6 mb-12">
             {[
               { label: "Hours", val: h, set: setH },
