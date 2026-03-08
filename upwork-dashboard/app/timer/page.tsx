@@ -21,6 +21,7 @@ export default function TimerPage() {
 
   const saveTimer = async () => {
     setLoading(true);
+    // Precise calculation to minutes for database
     const totalMinutes = (Number(h) * 60) + Number(m) + (Number(s) / 60);
 
     try {
@@ -42,6 +43,10 @@ export default function TimerPage() {
       <Sidebar />
       <main className="flex-1 lg:ml-72 flex flex-col items-center justify-center p-6 md:p-12">
         <div className="w-full max-w-xl text-center mb-10">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/5 border border-emerald-500/10 mb-6">
+            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+            <span className="text-[9px] font-black uppercase tracking-[0.3em] text-emerald-500/80">Automated Maintenance Engine</span>
+          </div>
           <h1 className="text-5xl font-black text-white tracking-tighter mb-4">Data Lifecycle</h1>
           <p className="text-slate-500 text-sm">Set independent values for Hours, Minutes, or Seconds.</p>
         </div>
@@ -59,7 +64,7 @@ export default function TimerPage() {
                     type="number" 
                     value={unit.val} 
                     onChange={(e) => unit.set(Math.max(0, Number(e.target.value)))}
-                    className="w-full bg-transparent text-4xl font-black text-white outline-none text-center"
+                    className="w-full bg-transparent text-4xl font-black text-white outline-none text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                   />
                 </div>
                 <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 mt-4">{unit.label}</span>

@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import ProposalModal from "@/components/ProposalModal";
 import Sidebar from "@/components/Sidebar";
 
-// --- PREMIUM BOXED TIMER COMPONENT (DYNAMIC UPDATE FIX) ---
+// --- PREMIUM BOXED TIMER COMPONENT ---
 function JobTimer({ createdAt, expiryMins, onExpire }: { createdAt: string, expiryMins: number, onExpire: () => void }) {
   const [time, setTime] = useState({ h: "00", m: "00", s: "00" });
 
@@ -35,7 +35,7 @@ function JobTimer({ createdAt, expiryMins, onExpire }: { createdAt: string, expi
     calculateTime();
     const interval = setInterval(calculateTime, 1000);
     return () => clearInterval(interval);
-  }, [createdAt, expiryMins, onExpire]); // expiryMins added as dependency
+  }, [createdAt, expiryMins, onExpire]);
 
   return (
     <div className="flex gap-1 items-center">
@@ -71,9 +71,10 @@ export default function Dashboard() {
       const data = await res.json();
       if (Array.isArray(data)) setJobs(data);
       
+      // FIXED API PATH: Fetching timer settings correctly
       const sRes = await fetch("/api/settings-s/timer");
       const sData = await sRes.json();
-      setExpiryMins(sData.expiry_minutes);
+      if (sData.expiry_minutes) setExpiryMins(sData.expiry_minutes);
     } catch (err) { console.log("Sync Error"); }
     finally { setTimeout(() => setIsSyncing(false), 800); }
   }, []);
@@ -145,11 +146,7 @@ export default function Dashboard() {
                       </div>
                       
                       <div className="flex items-center gap-6">
-                        <JobTimer 
-                          createdAt={job.created_at} 
-                          expiryMins={expiryMins} 
-                          onExpire={() => handleIgnore(job.job_id)} 
-                        />
+                        <JobTimer createdAt={job.created_at} expiryMins={expiryMins} onExpire={() => handleIgnore(job.job_id)} />
                         <button onClick={() => handleIgnore(job.job_id)} className="flex items-center gap-2 text-slate-600 hover:text-red-400 transition-all group/btn">
                           <span className="text-[10px] font-black uppercase tracking-widest opacity-0 group-hover/btn:opacity-100 transition-opacity">Ignore</span>
                           <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
@@ -175,7 +172,7 @@ export default function Dashboard() {
                     <div className="relative">
                       <p className={`text-slate-400 text-base leading-relaxed font-medium italic ${!isExpanded ? 'line-clamp-3' : ''}`}>{job.job_description}</p>
                       {job.job_description?.length > 200 && (
-                        <button onClick={() => toggleDescription(job.job_id)} className="text-emerald-500 text-[11px] font-black uppercase tracking-[0.2em] mt-4 hover:text-emerald-400 transition-all flex items-center gap-2">
+                        <button onClick={() => toggleDescription(job.job_id)} className="text-emerald-500 text-[11px] font-black uppercase mt-4 hover:text-emerald-400 transition-all flex items-center gap-2">
                           {isExpanded ? "↑ Collapse Details" : "↓ Expand Full Description"}
                         </button>
                       )}
@@ -187,12 +184,7 @@ export default function Dashboard() {
                         <span className="text-[10px] font-bold text-slate-400">{job.client_spent}</span>
                       </div>
                       <div className="flex gap-4">
-                        <button 
-                          onClick={() => setSelectedJob(job)}
-                          className="bg-blue-600 hover:bg-blue-500 text-white px-8 py-4 rounded-[1.5rem] text-sm font-black transition-all shadow-xl shadow-blue-900/20 active:scale-95 uppercase tracking-widest"
-                        >
-                          Generate Proposal ✨
-                        </button>
+                        <button onClick={() => setSelectedJob(job)} className="bg-blue-600 hover:bg-blue-500 text-white px-8 py-4 rounded-[1.5rem] text-sm font-black transition-all shadow-xl shadow-blue-900/20 active:scale-95 uppercase tracking-widest">Generate Proposal ✨</button>
                         <a href={job.job_url} target="_blank" className="bg-slate-800 hover:bg-slate-700 text-white px-8 py-4 rounded-[1.5rem] text-sm font-black transition-all active:scale-95 uppercase tracking-widest">Apply on Upwork</a>
                       </div>
                     </div>

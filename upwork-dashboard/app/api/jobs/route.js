@@ -10,17 +10,20 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
     try {
-        // 1. Get Expiry Setting
+        // 1. Get Expiry Setting from DB (id=1)
         const { data: settings } = await supabase.from('settings').select('expiry_minutes').eq('id', 1).single();
-        const expiryMins = settings?.expiry_minutes || 360;
+        
+        // Agar DB mein value hai to wo use karo, warna 6 hours default (sirf safety ke liye)
+        const expiryMins = settings ? settings.expiry_minutes : 360;
 
         // 2. Server-side Cleanup (UTC Based)
+        // Cutoff time = Abhi ka waqt - User ka set kiya hua time
         const cutoffTime = new Date(Date.now() - expiryMins * 60 * 1000).toISOString();
         
         // Delete jobs older than cutoff
         await supabase.from('jobs').delete().lt('created_at', cutoffTime);
 
-        // 3. Fetch Fresh Jobs
+        // 3. Fetch Remaining Jobs
         const { data: jobs, error } = await supabase
             .from('jobs')
             .select('*')
