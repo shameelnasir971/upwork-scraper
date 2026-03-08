@@ -4,19 +4,23 @@ import { useState, useEffect, useCallback } from "react";
 import ProposalModal from "@/components/ProposalModal";
 import Sidebar from "@/components/Sidebar";
 
-// --- PREMIUM BOXED TIMER COMPONENT ---
+// --- PREMIUM BOXED TIMER COMPONENT (UTC & DYNAMIC SYNC FIX) ---
 function JobTimer({ createdAt, expiryMins, onExpire }: { createdAt: string, expiryMins: number, onExpire: () => void }) {
   const [time, setTime] = useState({ h: "00", m: "00", s: "00" });
 
   useEffect(() => {
+    // Agar expiryMins load nahi hua ya 0 hai, to timer start na karo
+    if (!expiryMins || expiryMins <= 0) return;
+
     const calculateTime = () => {
+      // Convert Supabase UTC string to local timestamp for 100% accuracy
       const createdDate = new Date(createdAt).getTime();
       const expiryTime = createdDate + (expiryMins * 60 * 1000);
       const now = new Date().getTime();
       const diff = expiryTime - now;
 
       if (diff <= 0) {
-        onExpire(); 
+        onExpire(); // Trigger instant deletion from UI and DB
         return false;
       } else {
         const h = Math.floor(diff / (1000 * 60 * 60));
@@ -57,7 +61,7 @@ function JobTimer({ createdAt, expiryMins, onExpire }: { createdAt: string, expi
 
 export default function Dashboard() {
   const [jobs, setJobs] = useState<any[]>([]);
-  const [expiryMins, setExpiryMins] = useState(360);
+  const [expiryMins, setExpiryMins] = useState(0); // Default 0 to prevent early deletion
   const [currentPage, setCurrentPage] = useState(1);
   const [isSyncing, setIsSyncing] = useState(false);
   const [expandedJobs, setExpandedJobs] = useState<Record<string, boolean>>({});
@@ -67,14 +71,15 @@ export default function Dashboard() {
   const fetchJobs = useCallback(async () => {
     setIsSyncing(true);
     try {
-      const res = await fetch(`/api/jobs?t=${Date.now()}`, { cache: "no-store" });
-      const data = await res.json();
-      if (Array.isArray(data)) setJobs(data);
-      
-      // FIXED API PATH: Fetching timer settings correctly
+      // 1. Pehle Settings fetch karein taake sahi timer milay
       const sRes = await fetch("/api/settings-s/timer");
       const sData = await sRes.json();
       if (sData.expiry_minutes) setExpiryMins(sData.expiry_minutes);
+
+      // 2. Phir Jobs fetch karein
+      const res = await fetch(`/api/jobs?t=${Date.now()}`, { cache: "no-store" });
+      const data = await res.json();
+      if (Array.isArray(data)) setJobs(data);
     } catch (err) { console.log("Sync Error"); }
     finally { setTimeout(() => setIsSyncing(false), 800); }
   }, []);
@@ -146,7 +151,14 @@ export default function Dashboard() {
                       </div>
                       
                       <div className="flex items-center gap-6">
-                        <JobTimer createdAt={job.created_at} expiryMins={expiryMins} onExpire={() => handleIgnore(job.job_id)} />
+                        {/* TIMER ONLY SHOWS WHEN EXPIRY MINS IS LOADED */}
+                        {expiryMins > 0 && (
+                          <JobTimer 
+                            createdAt={job.created_at} 
+                            expiryMins={expiryMins} 
+                            onExpire={() => handleIgnore(job.job_id)} 
+                          />
+                        )}
                         <button onClick={() => handleIgnore(job.job_id)} className="flex items-center gap-2 text-slate-600 hover:text-red-400 transition-all group/btn">
                           <span className="text-[10px] font-black uppercase tracking-widest opacity-0 group-hover/btn:opacity-100 transition-opacity">Ignore</span>
                           <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
@@ -184,7 +196,12 @@ export default function Dashboard() {
                         <span className="text-[10px] font-bold text-slate-400">{job.client_spent}</span>
                       </div>
                       <div className="flex gap-4">
-                        <button onClick={() => setSelectedJob(job)} className="bg-blue-600 hover:bg-blue-500 text-white px-8 py-4 rounded-[1.5rem] text-sm font-black transition-all shadow-xl shadow-blue-900/20 active:scale-95 uppercase tracking-widest">Generate Proposal ✨</button>
+                        <button 
+                          onClick={() => setSelectedJob(job)}
+                          className="bg-blue-600 hover:bg-blue-500 text-white px-8 py-4 rounded-[1.5rem] text-sm font-black transition-all shadow-xl shadow-blue-900/20 active:scale-95 uppercase tracking-widest"
+                        >
+                          Generate Proposal ✨
+                        </button>
                         <a href={job.job_url} target="_blank" className="bg-slate-800 hover:bg-slate-700 text-white px-8 py-4 rounded-[1.5rem] text-sm font-black transition-all active:scale-95 uppercase tracking-widest">Apply on Upwork</a>
                       </div>
                     </div>
