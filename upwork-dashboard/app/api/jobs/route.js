@@ -10,36 +10,28 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
     try {
-        // 1. Settings fetch karein
+        // 1. Pehle settings se asli expiry minutes uthao
         const { data: settings } = await supabase.from('settings').select('expiry_minutes').eq('id', 1).single();
         
-        // 2. SAFETY CHECK: Agar setting nahi mili ya 0 hai, to delete mat karo
+        // 2. Agar setting mil jaye aur 0 na ho, tabhi delete karo
         if (settings && settings.expiry_minutes > 0) {
             const expiryMins = settings.expiry_minutes;
             
-            // UTC based calculation (Server side)
-            // Hum 1 minute ka extra buffer de rahe hain sync issues ke liye
+            // UTC based cutoff calculation
             const cutoffTime = new Date(Date.now() - (expiryMins * 60 * 1000)).toISOString();
             
-            await supabase
-                .from('jobs')
-                .delete()
-                .lt('created_at', cutoffTime);
+            // Delete only if older than cutoff
+            await supabase.from('jobs').delete().lt('created_at', cutoffTime);
         }
 
-        // 3. Fetch Jobs
+        // 3. Fetch remaining jobs
         const { data: jobs, error } = await supabase
             .from('jobs')
             .select('*')
             .order('id', { ascending: false });
 
         if (error) throw error; 
-        
-        return NextResponse.json(jobs, { 
-            headers: { 
-                'Cache-Control': 'no-store, max-age=0, must-revalidate' 
-            } 
-        });
+        return NextResponse.json(jobs, { headers: { 'Cache-Control': 'no-store' } });
     } catch (error) {
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
