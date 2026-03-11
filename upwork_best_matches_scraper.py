@@ -16,8 +16,8 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.action_chains import ActionChains
 
 # --- SUPABASE CONFIG ---
-SUPABASE_URL = "https://zpgcldllammzlxkktpfv.supabase.co"
-SUPABASE_KEY = "sb_publishable_GT0CtQWcAdRGNfGGPd5GVg_zubsqSyy"
+SUPABASE_URL = "https://uppdfisizagwjcmzkcdk.supabase.co"
+SUPABASE_KEY = "sb_publishable_77DKwM8_62xnmNCrC28X2Q_EJmWCTlk"
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 # --- LOGGING SETUP ---
