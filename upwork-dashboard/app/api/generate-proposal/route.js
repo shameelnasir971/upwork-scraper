@@ -4,8 +4,8 @@ import { NextResponse } from 'next/server';
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 const supabase = createClient(
-  process.env.SUPABASE_URL || "https://zpgcldllammzlxkktpfv.supabase.co", 
-  process.env.SUPABASE_KEY || "sb_publishable_GT0CtQWcAdRGNfGGPd5GVg_zubsqSyy"
+   process.env.SUPABASE_URL || "https://uppdfisizagwjcmzkcdk.supabase.co", 
+  process.env.SUPABASE_KEY || "sb_publishable_77DKwM8_62xnmNCrC28X2Q_EJmWCTlk"
 );
 
 export async function POST(req) {

@@ -2,7 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 
 const supabase = createClient(
-   process.env.SUPABASE_URL || "https://uppdfisizagwjcmzkcdk.supabase.co", 
+  process.env.SUPABASE_URL || "https://uppdfisizagwjcmzkcdk.supabase.co", 
   process.env.SUPABASE_KEY || "sb_publishable_77DKwM8_62xnmNCrC28X2Q_EJmWCTlk"
 );
 
