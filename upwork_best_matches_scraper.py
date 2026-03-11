@@ -16,8 +16,8 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.action_chains import ActionChains
 
 # --- SUPABASE CONFIG ---
-SUPABASE_URL = "https://vdhylaaoljrvvqrygsom.supabase.co"
-SUPABASE_KEY = "sb_publishable_rPyfp5viSf77gGqxc0w27g_k2hI3QuI"
+SUPABASE_URL = "https://zpgcldllammzlxkktpfv.supabase.co"
+SUPABASE_KEY = "sb_publishable_GT0CtQWcAdRGNfGGPd5GVg_zubsqSyy"
 
 # SUPABASE_URL = "https://zpgcldllammzlxkktpfv.supabase.co"
 # SUPABASE_KEY = "sb_publishable_GT0CtQWcAdRGNfGGPd5GVg_zubsqSyy"

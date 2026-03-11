@@ -6,6 +6,7 @@ export default function ScraperSettings() {
   const [batches, setBatches] = useState(3);
   const [loading, setLoading] = useState(false);
 
+  // 1. Data fetch karne ke liye sahi URL
   useEffect(() => {
     fetch("/api/settings-s/batches")
       .then((res) => res.json())
@@ -17,12 +18,18 @@ export default function ScraperSettings() {
   const saveSettings = async () => {
     setLoading(true);
     try {
-      await fetch("/api/settings-s-batches", {
+      // FIX: URL ko sahi kiya gaya hai (/api/settings-s/batches)
+      const res = await fetch("/api/settings-s/batches", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ batch_limit: batches }),
       });
-      alert("Scraper Engine Reconfigured! 🚀");
+
+      if (res.ok) {
+        alert("Scraper Engine Reconfigured! 🚀");
+      } else {
+        throw new Error("Failed to save");
+      }
     } catch (err) {
       alert("Failed to sync settings");
     } finally {
@@ -58,7 +65,7 @@ export default function ScraperSettings() {
                 <span className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-500 mt-2">Active Batches</span>
               </div>
               <button onClick={() => setBatches(Math.min(10, batches + 1))} className="w-16 h-16 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center text-2xl text-slate-400 hover:text-white transition-all active:scale-90 shadow-lg">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 4v16m8-8H4" /></svg>
+                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 4v16m8-8H4" /></svg>
               </button>
             </div>
 
